@@ -40,10 +40,15 @@ canvas{width:100%;height:180px;border:3px solid var(--ink);background:var(--card
 .days label{display:inline-flex;align-items:center;gap:4px;min-height:44px;border:3px solid var(--ink);padding:0 8px;margin:2px;font-size:13px;font-weight:700;background:var(--card)}.days input{width:20px;min-height:0;margin:0;accent-color:var(--ink)}
 .rt{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;background:var(--acc);color:#171717;border:3px solid var(--ink);padding:6px 10px;margin-bottom:14px;box-shadow:var(--sh);font:900 20px system-ui}.rt[hidden]{display:none}
 header{display:flex;justify-content:space-between;align-items:center}#tb{font-size:12px;min-height:38px;margin:0}
+.cal .r{background:#BDE5B8;color:#171717}.cal .k{background:#8f8f8f;color:#171717}.cal .s{box-shadow:inset 0 0 0 3px var(--ink)}
+.qb{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 12px}.qb button{min-height:54px;font-weight:900;box-shadow:3px 3px 0 var(--ink);color:#171717;padding:0}
+.qb .qm{background:var(--red);color:#fff}.qb .qr{background:#BDE5B8}.qb .qs{background:#8f8f8f}.qb .on{outline:3px solid var(--ink);outline-offset:2px}
+details>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;min-height:44px}details>summary::-webkit-details-marker{display:none}
+details>summary>b{flex:1;font:900 18px system-ui;letter-spacing:-.02em}details>summary::after{content:"▾";font-weight:900}details[open]>summary::after{content:"▴"}details[open]>summary{margin-bottom:8px}
 :focus-visible{outline:3px solid var(--red);outline-offset:2px}
 [data-theme=dark]{--bg:#141414;--ink:#F4F0E8;--card:#222;--mut:#2d2d2d;--gry:#383838;--yel:#E8D36A}
 </style></head><body>
-<header><span>ProjectLift<small>v5</small></span><button id=tb class=btn onclick="togTheme()">DARK</button></header><main id="v"></main>
+<header><span>ProjectLift<small>v6</small></span><button id=tb class=btn onclick="togTheme()">DARK</button></header><main id="v"></main>
 <nav id="n"></nav>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -54,20 +59,20 @@ let db,D={r:[],s:[],m:[],t:[]},B={},tab='home',cm=0,sel=ymd(new Date()),md=ymd(n
 const op=()=>new Promise(r=>{const q=indexedDB.open('fit',1);q.onupgradeneeded=()=>{for(const n of['r','s','m','t','k'])q.result.createObjectStore(n,{keyPath:n=='t'?'d':n=='k'?'key':'id'})};q.onsuccess=()=>r(q.result)});
 const tx=(n,m,f)=>new Promise(r=>{const t=db.transaction(n,m),o=f(t.objectStore(n));t.oncomplete=()=>r(o.result)});
 const put=(n,o)=>tx(n,'readwrite',s=>s.put(o)),rm=(n,k)=>tx(n,'readwrite',s=>s.delete(k)),all=n=>tx(n,'readonly',s=>s.getAll());
-const DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],ST={sick:'🤒',drained:'😮‍💨',busy:'📅',injured:'🩹',travel:'✈️',other:'💬'},BARS=['Normal','Heavier','Lighter','Other'];
+const DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],ST={missed:'✗',rest:'😴',sick:'🤒',drained:'😮‍💨',busy:'📅',injured:'🩹',travel:'✈️',other:'💬'},BARS=['Normal','Heavier','Lighter','Other'];
 const ended=()=>D.s.filter(s=>s.end).sort((a,b)=>b.start-a.start);
 const act=()=>D.s.find(s=>!s.end);
 async function load(){for(const n of['r','s','m','t'])D[n]=await all(n);B=(await all('k')).find(x=>x.key=='body')||{key:'body'}}
 function lastFor(n){for(const s of ended()){const e=s.ex.find(e=>e.n==n&&e.sets.some(x=>x.d));if(e)return e.sets.filter(x=>x.d)}return[]}
 function mk(n,c){const l=lastFor(n);return(l.length?l:Array.from({length:c||3},()=>({}))).map(x=>({w:x.w??'',r:x.r??'',b:x.b||'Normal',d:false,p:x.w!==undefined?x.w+'×'+x.r:''}))}
-function miss(){const ms=new Set(),td=ymd(new Date());if(!D.r.length)return ms;
+function miss(){const ms=new Set(),td=ymd(new Date());const ex=new Set(D.t.filter(t=>t.st=='rest'||t.st=='sick').map(t=>t.d));for(const t of D.t)if(t.st=='missed')ms.add(t.d);if(!D.r.length)return ms;
 const st=ymd(Math.min(...D.r.map(r=>r.c))),gym=new Set(ended().map(s=>ymd(s.start)));
-for(let x=pd(st);ymd(x)<td;x.setDate(x.getDate()+1)){const k=ymd(x);if(!gym.has(k)&&D.r.some(r=>r.mode=='days'&&r.days.includes(x.getDay())))ms.add(k)}
+for(let x=pd(st);ymd(x)<td;x.setDate(x.getDate()+1)){const k=ymd(x);if(!gym.has(k)&&!ex.has(k)&&D.r.some(r=>r.mode=='days'&&r.days.includes(x.getDay())))ms.add(k)}
 const tg=D.r.filter(r=>r.mode=='week').reduce((a,r)=>a+r.n,0);
 if(tg){const w=pd(st);w.setDate(w.getDate()-((w.getDay()+6)%7));
 for(;;w.setDate(w.getDate()+7)){const days=[];for(let i=0;i<7;i++){const x=new Date(w);x.setDate(x.getDate()+i);days.push(ymd(x))}
 if(days[6]>=td)break;let sf=tg-days.filter(k=>gym.has(k)).length;
-for(let i=6;i>=0&&sf>0;i--)if(days[i]>=st&&!gym.has(days[i])&&!ms.has(days[i])){ms.add(days[i]);sf--}}}
+for(let i=6;i>=0&&sf>0;i--)if(days[i]>=st&&!gym.has(days[i])&&!ex.has(days[i])&&!ms.has(days[i])){ms.add(days[i]);sf--}}}
 return ms}
 function nextSess(){const td=new Date(),g=ymd(td),done=ended().some(s=>ymd(s.start)==g);
 for(let i=done?1:0;i<8;i++){const x=new Date(td);x.setDate(x.getDate()+i);const r=D.r.filter(r=>r.mode=='days'&&r.days.includes(x.getDay()));
@@ -80,7 +85,7 @@ function chk(){const a=act();if(a&&Date.now()-(a.last||a.start)>36e5){if(a.last)
 function home(){const l=ended()[0],ms=miss(),td=ymd(new Date()),gym=new Set(ended().map(s=>ymd(s.start))),T=Object.fromEntries(D.t.map(t=>[t.d,t]));
 const m=new Date();m.setDate(1);m.setMonth(m.getMonth()+cm);const Y=m.getFullYear(),M=m.getMonth(),n=new Date(Y,M+1,0).getDate(),o=(m.getDay()+6)%7;
 let cal=['M','T','W','T','F','S','S'].map(x=>`<div class=h>${x}</div>`).join('')+'<div class=e></div>'.repeat(o);
-for(let d=1;d<=n;d++){const k=ymd(new Date(Y,M,d)),t=T[k];cal+=`<div onclick="sel='${k}';R()" class="${gym.has(k)?'g':ms.has(k)?'m':''} ${k==td?'t':''}">${d}<b>${gym.has(k)?'✓':ms.has(k)?'✗':''}${t?ST[t.st]:''}</b></div>`}
+for(let d=1;d<=n;d++){const k=ymd(new Date(Y,M,d)),t=T[k];cal+=`<div onclick="sel='${k}';R()" class="${gym.has(k)?'g':t&&t.st=='rest'?'r':t&&t.st=='sick'?'k':ms.has(k)?'m':''} ${k==td?'t':''} ${k==sel?'s':''}">${d}<b>${gym.has(k)?'✓':t&&t.st=='rest'?'R':t&&t.st=='sick'?'S':ms.has(k)?'✗':''}${t&&!['rest','sick','missed'].includes(t.st)?ST[t.st]:''}</b></div>`}
 const ss=ended().filter(s=>ymd(s.start)==sel),ds=l?Math.floor((pd(td)-pd(ymd(l.start)))/864e5):null;
 const ts=D.t.find(t=>t.d==sel);
 return`<div class=stats><div class=c><span class=sm>LAST SESSION</span><div>${l?esc(l.name):'—'}</div><span class=sm>${l?ymd(l.start):''}</span></div>
@@ -89,17 +94,18 @@ return`<div class=stats><div class=c><span class=sm>LAST SESSION</span><div>${l?
 <div class=c><div class=row style="align-items:center"><button class=btn onclick="cm--;R()">◀</button><h2 style="text-align:center;margin:0">${m.toLocaleString('en',{month:'long'})} ${Y}</h2><button class=btn onclick="cm++;R()">▶</button></div>
 <div class=cal style="margin-top:8px">${cal}</div>
 <p class=lg style="margin-top:8px"><span>✓ Gym</span><span>✗ Missed</span><span>Grey = rest</span></p></div>
-<div class=c><h2>${sel}</h2>${ss.map(s=>`<div class=hr><span>${esc(s.name)} · ${ft(s.start)}–${ft(s.end)}</span><button class="btn bl" style="min-height:36px;margin:0" onclick="editS('${s.id}')">EDIT</button></div>`).join('')||'<p class=sm>No session logged this day.</p>'}
+<div class=c><h2>${sel}</h2><div class=qb>${[['missed','MISSED','qm'],['rest','REST','qr'],['sick','SICK','qs']].map(([k,l,c])=>`<button class="${c} ${ts?.st==k?'on':''}" onclick="quick('${k}')">${l}</button>`).join('')}</div>${ss.map(s=>`<div class=hr><span>${esc(s.name)} · ${ft(s.start)}–${ft(s.end)}</span><button class="btn bl" style="min-height:36px;margin:0" onclick="editS('${s.id}')">EDIT</button></div>`).join('')||'<p class=sm>No session logged this day.</p>'}
 ${sel<=td?`<div class=row style="margin-top:8px"><select id=ar>${D.r.map(r=>`<option value=${r.id}>${esc(r.name)}</option>`).join('')}<option value="">Custom session</option></select><button class=btn style="flex:none" onclick="addPast()">+ ADD</button></div>`:''}
 <button class="btn bl" onclick="md=sel;tab='meals';R()">MEALS FOR THIS DAY</button></div>
-<div class=c><h2>How was ${sel}?</h2><p class=sm>Tap a calendar day, then log why you missed or what was going on. No guilt.</p>
+<details class=c ${hw?'open':''} ontoggle="hw=this.open"><summary><b>How was ${sel}?</b></summary><p class=sm>Tap a calendar day, then log why you missed or what was going on. No guilt.</p>
 <select id=st>${Object.entries(ST).map(([k,v])=>`<option value=${k} ${ts?.st==k?'selected':''}>${v} ${k}</option>`).join('')}</select>
-<input id=sn placeholder="Note (optional)" value="${esc(ts?.note)}"><button class=btn onclick="saveSt()">SAVE</button>${ts?`<button class="btn pk" onclick="delSt()">CLEAR</button>`:''}</div>
+<input id=sn placeholder="Note (optional)" value="${esc(ts?.note)}"><button class=btn onclick="saveSt()">SAVE</button>${ts?`<button class="btn pk" onclick="delSt()">CLEAR</button>`:''}</details>
 <div class=c><h2>History</h2>${ended().slice(0,30).map(s=>{const sets=s.ex.reduce((a,e)=>a+e.sets.filter(x=>x.d).length,0);return`<div class=hr style="display:block;cursor:pointer" onclick="editS('${s.id}')"><div style="display:flex;justify-content:space-between"><b>${esc(s.name)}</b><span>${Math.max(1,Math.round((s.end-s.start)/6e4))} min</span></div><div class=sm>${fd(s.start)} · started ${ft(s.start)} · ended ${ft(s.end)} · ${sets} sets</div></div>`}).join('')||'<p class=sm>No sessions yet. Go lift something.</p>'}</div>
 <button class="btn bl" style="width:100%;margin:0 0 16px" onclick="bk=!bk;R()">${bk?'HIDE BACKUP':'BACKUP & DATA'}</button>${bk?`<div class=c><h2>Backup</h2><p class=sm>${B.lb?'Last backup: '+ymd(B.lb):'No backup yet.'} Your data lives only on this phone, so export now and then.</p><button class=btn onclick="exp()">EXPORT JSON</button><button class="btn bl" onclick="csv()">EXPORT CSV</button><label class="btn pk" style="display:inline-block;padding:9px">IMPORT<input type=file accept=.json hidden onchange="imp(this.files[0])"></label></div>`:''}`}
+async function quick(k){const o=D.t.find(x=>x.d==sel);if(o&&o.st==k)await rm('t',sel);else await put('t',{d:sel,st:k,note:o?.note||''});await load();R()}
 async function saveSt(){await put('t',{d:sel,st:$('#st').value,note:$('#sn').value});await load();R()}
 async function delSt(){await rm('t',sel);await load();R()}
-let nr=0,bk=0,srt='all';
+let hw=0,nr=0,bk=0,srt='all';
 const fd=s=>new Date(s).toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'}),ft=s=>new Date(s).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 const xr=(n,s)=>`<div class="row xr"><input class=xn placeholder="Exercise name" value="${esc(n)}"><input class=xs type=number inputmode=numeric min=1 max=20 value="${s}" style="flex:0 0 72px" aria-label="Sets"><button class="btn pk" style="flex:none;margin:3px 0;padding:0 12px" onclick="this.parentNode.remove()">✕</button></div>`;
 const addRow=()=>$('#xl').insertAdjacentHTML('beforeend',xr('',3));
@@ -142,18 +148,17 @@ function addEx(){const n=prompt('Exercise name? (this session only)');if(n){cons
 function rmEx(i){const a=cur();a.ex.splice(i,1);put('s',a);R()}
 async function fin(){const a=act();a.end=a.last||Date.now();if(!a.ex.some(e=>e.sets.some(s=>s.d))){if(!confirm('No sets ticked. Discard session?'))return;return disc(1)}await put('s',a);await load();tab='home';R()}
 async function disc(f){if(f||confirm('Discard this session?')){await rm('s',act().id);await load();R()}}
-function stats(){const ss=ended().filter(s=>srt=='all'||s.rid==srt).reverse(),names=[...new Set(ss.flatMap(s=>s.ex.map(e=>e.n)))];if(!names.includes(sx))sx=names[0]||'';
-const tot=s=>{const d=s.ex.flatMap(e=>e.sets.filter(x=>x.d));return{n:d.length,r:d.reduce((a,x)=>a+(+x.r||0),0)}};
-const rows=ss.map(s=>{const e=s.ex.find(e=>e.n==sx),d=e?e.sets.filter(x=>x.d):[];return d.length?{s,n:d.length,r:d.reduce((a,x)=>a+(+x.r||0),0),w:Math.max(...d.map(x=>+x.w||0)),d}:null}).filter(Boolean);
-setTimeout(()=>{ch('#c1',rows.map(p=>p.w),'#D7FF43');ch('#c2',rows.map(p=>p.r),'#FFE58A')},0);
-const opt=(v,l,c)=>`<option value="${v}" ${v==c?'selected':''}>${esc(l)}</option>`;
-let h=`<div class=c><h2>Template</h2><select onchange="srt=this.value;R()">${opt('all','All templates',srt)}${D.r.map(r=>opt(r.id,r.name,srt)).join('')}</select></div>`;
-if(!ss.length)return h+'<div class=c>No finished sessions for this template yet.</div>';
-h+=`<div class=c><h2>Sessions</h2>${ss.slice().reverse().slice(0,30).map(s=>{const k=tot(s);return`<div class=hr style="display:block"><div style="display:flex;justify-content:space-between"><b>${esc(s.name)}</b><span>${k.n} sets · ${k.r} reps</span></div><div class=sm>${fd(s.start)} · ${ft(s.start)}–${ft(s.end)}</div></div>`}).join('')}</div>`;
-if(!names.length)return h;
-return h+`<div class=c><h2>Exercise</h2><select onchange="sx=this.value;R()">${names.map(n=>opt(n,n,sx)).join('')}</select></div>
-<div class=c><h2>Top weight per session</h2><canvas id=c1></canvas><h2>Total reps per session</h2><canvas id=c2></canvas></div>
-<div class=c><h2>${esc(sx)}: each session</h2>${rows.slice().reverse().map(p=>`<div class=hr style="display:block"><div style="display:flex;justify-content:space-between"><b>${fd(p.s.start)}</b><span>${p.n} sets · ${p.r} reps · top ${p.w}</span></div><div class=sm>${p.d.map(x=>(x.w||0)+'×'+(x.r||0)).join(' · ')}</div></div>`).join('')||'<p class=sm>No sets logged.</p>'}</div>`}
+let SD={};
+function dr(d){const c=d.querySelector('canvas');if(c)ch('#'+c.id,SD[c.id],'#D7FF43')}
+function stats(){const ss=ended().filter(s=>srt=='all'||s.rid==srt).reverse(),rn=srt=='all'?'All routines':(D.r.find(r=>r.id==srt)||{name:'Deleted routine'}).name,names=[...new Set(ss.flatMap(s=>s.ex.map(e=>e.n)))];
+const opt=(v,l)=>`<option value="${v}" ${v==srt?'selected':''}>${esc(l)}</option>`;
+const h=`<div class="c hero"><span class=sm>STATS FROM</span><div class=big style="font-size:30px">${esc(rn)}</div><select onchange="srt=this.value;R()">${opt('all','All routines')}${D.r.map(r=>opt(r.id,r.name)).join('')}</select><p class=sm>${ss.length} finished sessions</p></div>`;
+if(!names.length)return h+'<div class=c>No finished sessions for this routine yet.</div>';
+SD={};
+const cards=names.map((n,i)=>{const rows=ss.map(s=>{const e=s.ex.find(e=>e.n==n),d=e?e.sets.filter(x=>x.d):[];return d.length?{s,n:d.length,r:d.reduce((a,x)=>a+(+x.r||0),0),v:d.reduce((a,x)=>a+(+x.w||0)*(+x.r||0),0)}:null}).filter(Boolean);SD['cv'+i]=rows.map(p=>p.v);
+return`<details class=c open ontoggle="if(this.open)dr(this)"><summary><b>${esc(n)}</b><span class=sm>${rows.length?'last: '+rows[rows.length-1].v+' kg':'no data'}</span></summary><canvas id=cv${i}></canvas><div class=sm style="margin-bottom:6px">Total work per session = sets × weight × reps</div>${rows.slice().reverse().slice(0,10).map(p=>`<div class=hr><span>${fd(p.s.start)}</span><span>${p.n} sets · ${p.r} reps · ${p.v} kg</span></div>`).join('')}</details>`}).join('');
+setTimeout(()=>document.querySelectorAll('#v details[open]').forEach(dr),0);
+return h+cards}
 function ch(id,v,col){const e=$(id);if(!e)return;const W=e.width=e.clientWidth*2,H=e.height=360,x=e.getContext('2d'),mx=Math.max(...v,1),mn=Math.min(...v,0),p=36,X=i=>p+(v.length>1?i*(W-2*p)/(v.length-1):(W-2*p)/2),Y=y=>H-p-(y-mn)/((mx-mn)||1)*(H-2*p);
 const cs=getComputedStyle(document.documentElement),ink=cs.getPropertyValue('--ink'),cd=cs.getPropertyValue('--card');x.fillStyle=cd;x.fillRect(0,0,W,H);x.strokeStyle=ink;x.fillStyle=ink;x.font='bold 24px sans-serif';x.lineWidth=6;x.beginPath();v.forEach((y,i)=>i?x.lineTo(X(i),Y(y)):x.moveTo(X(i),Y(y)));x.stroke();
 v.forEach((y,i)=>{x.fillStyle=col;x.fillRect(X(i)-10,Y(y)-10,20,20);x.strokeRect(X(i)-10,Y(y)-10,20,20);x.fillStyle=ink;x.fillText(y,X(i)-10,Y(y)-18)})}
