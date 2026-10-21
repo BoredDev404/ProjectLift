@@ -43,7 +43,7 @@ header{display:flex;justify-content:space-between;align-items:center}#tb{font-si
 :focus-visible{outline:3px solid var(--red);outline-offset:2px}
 [data-theme=dark]{--bg:#141414;--ink:#F4F0E8;--card:#222;--mut:#2d2d2d;--gry:#383838;--yel:#E8D36A}
 </style></head><body>
-<header><span>ProjectLift<small>v4</small></span><button id=tb class=btn onclick="togTheme()">DARK</button></header><main id="v"></main>
+<header><span>ProjectLift<small>v5</small></span><button id=tb class=btn onclick="togTheme()">DARK</button></header><main id="v"></main>
 <nav id="n"></nav>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -89,29 +89,34 @@ return`<div class=stats><div class=c><span class=sm>LAST SESSION</span><div>${l?
 <div class=c><div class=row style="align-items:center"><button class=btn onclick="cm--;R()">◀</button><h2 style="text-align:center;margin:0">${m.toLocaleString('en',{month:'long'})} ${Y}</h2><button class=btn onclick="cm++;R()">▶</button></div>
 <div class=cal style="margin-top:8px">${cal}</div>
 <p class=lg style="margin-top:8px"><span>✓ Gym</span><span>✗ Missed</span><span>Grey = rest</span></p></div>
-<div class=c><h2>${sel}</h2>${ss.map(s=>`<div class=hr><span>${esc(s.name)} · ${Math.max(1,Math.round((s.end-s.start)/6e4))} min</span><button class="btn bl" style="min-height:36px;margin:0" onclick="editS('${s.id}')">EDIT</button></div>`).join('')||'<p class=sm>No session logged this day.</p>'}
+<div class=c><h2>${sel}</h2>${ss.map(s=>`<div class=hr><span>${esc(s.name)} · ${ft(s.start)}–${ft(s.end)}</span><button class="btn bl" style="min-height:36px;margin:0" onclick="editS('${s.id}')">EDIT</button></div>`).join('')||'<p class=sm>No session logged this day.</p>'}
 ${sel<=td?`<div class=row style="margin-top:8px"><select id=ar>${D.r.map(r=>`<option value=${r.id}>${esc(r.name)}</option>`).join('')}<option value="">Custom session</option></select><button class=btn style="flex:none" onclick="addPast()">+ ADD</button></div>`:''}
 <button class="btn bl" onclick="md=sel;tab='meals';R()">MEALS FOR THIS DAY</button></div>
 <div class=c><h2>How was ${sel}?</h2><p class=sm>Tap a calendar day, then log why you missed or what was going on. No guilt.</p>
 <select id=st>${Object.entries(ST).map(([k,v])=>`<option value=${k} ${ts?.st==k?'selected':''}>${v} ${k}</option>`).join('')}</select>
 <input id=sn placeholder="Note (optional)" value="${esc(ts?.note)}"><button class=btn onclick="saveSt()">SAVE</button>${ts?`<button class="btn pk" onclick="delSt()">CLEAR</button>`:''}</div>
-<div class=c><h2>History</h2>${ended().slice(0,30).map(s=>{const sets=s.ex.reduce((a,e)=>a+e.sets.filter(x=>x.d).length,0);return`<div class=hr><span>${ymd(s.start)} · ${esc(s.name)}</span><span>${Math.max(1,Math.round((s.end-s.start)/6e4))} min · ${sets} sets</span></div>`}).join('')||'<p class=sm>No sessions yet. Go lift something.</p>'}</div>
-<div class=c><h2>Backup</h2><p class=sm>${B.lb?'Last backup: '+ymd(B.lb):'No backup yet.'} Your data lives only on this phone, so export now and then.</p><button class=btn onclick="exp()">EXPORT JSON</button><button class="btn bl" onclick="csv()">EXPORT CSV</button><label class="btn pk" style="display:inline-block;padding:9px">IMPORT<input type=file accept=.json hidden onchange="imp(this.files[0])"></label></div>`}
+<div class=c><h2>History</h2>${ended().slice(0,30).map(s=>{const sets=s.ex.reduce((a,e)=>a+e.sets.filter(x=>x.d).length,0);return`<div class=hr style="display:block;cursor:pointer" onclick="editS('${s.id}')"><div style="display:flex;justify-content:space-between"><b>${esc(s.name)}</b><span>${Math.max(1,Math.round((s.end-s.start)/6e4))} min</span></div><div class=sm>${fd(s.start)} · started ${ft(s.start)} · ended ${ft(s.end)} · ${sets} sets</div></div>`}).join('')||'<p class=sm>No sessions yet. Go lift something.</p>'}</div>
+<button class="btn bl" style="width:100%;margin:0 0 16px" onclick="bk=!bk;R()">${bk?'HIDE BACKUP':'BACKUP & DATA'}</button>${bk?`<div class=c><h2>Backup</h2><p class=sm>${B.lb?'Last backup: '+ymd(B.lb):'No backup yet.'} Your data lives only on this phone, so export now and then.</p><button class=btn onclick="exp()">EXPORT JSON</button><button class="btn bl" onclick="csv()">EXPORT CSV</button><label class="btn pk" style="display:inline-block;padding:9px">IMPORT<input type=file accept=.json hidden onchange="imp(this.files[0])"></label></div>`:''}`}
 async function saveSt(){await put('t',{d:sel,st:$('#st').value,note:$('#sn').value});await load();R()}
 async function delSt(){await rm('t',sel);await load();R()}
+let nr=0,bk=0,srt='all';
+const fd=s=>new Date(s).toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'}),ft=s=>new Date(s).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+const xr=(n,s)=>`<div class="row xr"><input class=xn placeholder="Exercise name" value="${esc(n)}"><input class=xs type=number inputmode=numeric min=1 max=20 value="${s}" style="flex:0 0 72px" aria-label="Sets"><button class="btn pk" style="flex:none;margin:3px 0;padding:0 12px" onclick="this.parentNode.remove()">✕</button></div>`;
+const addRow=()=>$('#xl').insertAdjacentHTML('beforeend',xr('',3));
+function openF(id){ed=id||null;nr=!id;R();scrollTo(0,0)}
 let eid=null,ed=null,rt=0,bp=0;
 function train(){const a=act();if(a)return sess(a);const o=ed&&D.r.find(r=>r.id==ed)||{},mo=o.mode||'days';
 const form=`<div class=c><h2>${o.id?'Edit Routine':'New Routine'}</h2><input id=rn placeholder="Name e.g. Push Day" value="${esc(o.name)}">
-<textarea id=re rows=5 placeholder="One exercise per line. Optional sets: Bench Press:4">${esc((o.ex||[]).map(e=>e.n+':'+e.s).join('\n'))}</textarea>
+<div class=sm style="margin:6px 0 2px">Exercises and number of sets</div><div id=xl>${(o.ex&&o.ex.length?o.ex:[{n:'',s:3}]).map(e=>xr(e.n,e.s)).join('')}</div><button class="btn bl" onclick="addRow()">+ EXERCISE</button>
 <select id=rm onchange="$('#rd').hidden=this.value!='days';$('#rx').hidden=this.value!='week'">${[['days','Specific days of the week'],['week','X times per week'],['none','No goal']].map(([v,l])=>`<option value=${v} ${mo==v?'selected':''}>${l}</option>`).join('')}</select>
 <div id=rd class=days ${mo!='days'?'hidden':''}>${[1,2,3,4,5,6,0].map(d=>`<label><input type=checkbox value=${d} ${(o.days||[]).includes(d)?'checked':''}>${DN[d]}</label>`).join('')}</div>
-<input id=rx type=number min=1 max=7 value=${o.n||3} ${mo!='week'?'hidden':''}><button class=btn onclick="addR()">SAVE ROUTINE</button>${o.id?`<button class="btn pk" onclick="ed=null;R()">CANCEL</button>`:''}</div>`;
-const list=`<div class=c><h2>My Routines</h2>${D.r.map(r=>`<div class=hr style="display:block"><b>${esc(r.name)}</b><div class=sm>${r.ex.map(e=>esc(e.n)).join(' · ')}<br>Goal: ${r.mode=='days'?r.days.map(d=>DN[d]).join(', '):r.mode=='week'?r.n+'× per week':'none'}</div>
-<button class=btn onclick="startR('${r.id}')">START</button><button class="btn bl" onclick="ed='${r.id}';R();scrollTo(0,0)">EDIT</button><button class="btn bl" onclick="cloneR('${r.id}')">CLONE</button><button class="btn pk" onclick="delR('${r.id}')">DELETE</button></div>`).join('')||'<p class=sm>No routines yet. Create one below.</p>'}</div>`;
-return ed?form+list:list+form}
-async function addR(){const name=$('#rn').value.trim(),ex=$('#re').value.split('\n').map(x=>x.trim()).filter(Boolean).map(x=>{const[n,s]=x.split(':');return{n:n.trim(),s:+s||3}});
+<input id=rx type=number min=1 max=7 value=${o.n||3} ${mo!='week'?'hidden':''}><button class=btn onclick="addR()">SAVE ROUTINE</button><button class="btn pk" onclick="ed=null;nr=0;R()">CANCEL</button></div>`;
+const list=`<div class=c><div class=row style="align-items:center;margin-bottom:8px"><h2 style="margin:0">My Routines</h2><button class=btn style="flex:none;margin:0" onclick="openF()">+ NEW ROUTINE</button></div>${D.r.map(r=>`<div class=hr style="display:block"><b>${esc(r.name)}</b><div class=sm>${r.ex.map(e=>esc(e.n)).join(' · ')}<br>Goal: ${r.mode=='days'?r.days.map(d=>DN[d]).join(', '):r.mode=='week'?r.n+'× per week':'none'}</div>
+<button class=btn onclick="startR('${r.id}')">START</button><button class="btn bl" onclick="openF('${r.id}')">EDIT</button><button class="btn bl" onclick="cloneR('${r.id}')">CLONE</button><button class="btn pk" onclick="delR('${r.id}')">DELETE</button></div>`).join('')||'<p class=sm>No routines yet. Create one below.</p>'}</div>`;
+return ed||nr?form+list:list}
+async function addR(){const name=$('#rn').value.trim(),ex=[...document.querySelectorAll('.xr')].map(r=>({n:r.querySelector('.xn').value.trim(),s:+r.querySelector('.xs').value||3})).filter(e=>e.n);
 if(!name||!ex.length)return alert('Add a name and at least one exercise');const o=ed&&D.r.find(r=>r.id==ed);
-await put('r',{id:o?o.id:uid(),name,ex,mode:$('#rm').value,days:[...document.querySelectorAll('#rd input:checked')].map(i=>+i.value),n:+$('#rx').value||3,c:o?o.c:Date.now()});ed=null;await load();R()}
+await put('r',{id:o?o.id:uid(),name,ex,mode:$('#rm').value,days:[...document.querySelectorAll('#rd input:checked')].map(i=>+i.value),n:+$('#rx').value||3,c:o?o.c:Date.now()});ed=null;nr=0;await load();R()}
 async function cloneR(id){const o=D.r.find(r=>r.id==id),n={...o,id:uid(),name:o.name+' (copy)',c:Date.now()};await put('r',n);await load();ed=n.id;R();scrollTo(0,0)}
 async function delR(id){if(confirm('Delete routine? History is kept.')){await rm('r',id);await load();R()}}
 async function startR(id){rt=0;const r=D.r.find(r=>r.id==id),s={id:uid(),rid:id,name:r.name,start:Date.now(),end:null,last:null,ex:r.ex.map(e=>({n:e.n,sets:mk(e.n,e.s)}))};await put('s',s);await load();R()}
@@ -137,10 +142,18 @@ function addEx(){const n=prompt('Exercise name? (this session only)');if(n){cons
 function rmEx(i){const a=cur();a.ex.splice(i,1);put('s',a);R()}
 async function fin(){const a=act();a.end=a.last||Date.now();if(!a.ex.some(e=>e.sets.some(s=>s.d))){if(!confirm('No sets ticked. Discard session?'))return;return disc(1)}await put('s',a);await load();tab='home';R()}
 async function disc(f){if(f||confirm('Discard this session?')){await rm('s',act().id);await load();R()}}
-function stats(){const names=[...new Set(D.s.flatMap(s=>s.ex.map(e=>e.n)))];if(!sx||!names.includes(sx))sx=names[0]||'';
-setTimeout(()=>{const pts=ended().reverse().map(s=>{const e=s.ex.find(e=>e.n==sx),d=e?e.sets.filter(x=>x.d):[];return d.length?{w:Math.max(...d.map(x=>+x.w||0)),r:d.reduce((a,x)=>a+(+x.r||0),0)}:null}).filter(Boolean);ch('#c1',pts.map(p=>p.w),'#D7FF43');ch('#c2',pts.map(p=>p.r),'#FFE58A')},0);
-return names.length?`<div class=c><h2>Exercise</h2><select onchange="sx=this.value;R()">${names.map(n=>`<option ${n==sx?'selected':''}>${esc(n)}</option>`).join('')}</select></div>
-<div class=c><h2>Top weight per session</h2><canvas id=c1></canvas><h2>Total reps per session</h2><canvas id=c2></canvas></div>`:'<div class=c>Finish a session to see progress graphs.</div>'}
+function stats(){const ss=ended().filter(s=>srt=='all'||s.rid==srt).reverse(),names=[...new Set(ss.flatMap(s=>s.ex.map(e=>e.n)))];if(!names.includes(sx))sx=names[0]||'';
+const tot=s=>{const d=s.ex.flatMap(e=>e.sets.filter(x=>x.d));return{n:d.length,r:d.reduce((a,x)=>a+(+x.r||0),0)}};
+const rows=ss.map(s=>{const e=s.ex.find(e=>e.n==sx),d=e?e.sets.filter(x=>x.d):[];return d.length?{s,n:d.length,r:d.reduce((a,x)=>a+(+x.r||0),0),w:Math.max(...d.map(x=>+x.w||0)),d}:null}).filter(Boolean);
+setTimeout(()=>{ch('#c1',rows.map(p=>p.w),'#D7FF43');ch('#c2',rows.map(p=>p.r),'#FFE58A')},0);
+const opt=(v,l,c)=>`<option value="${v}" ${v==c?'selected':''}>${esc(l)}</option>`;
+let h=`<div class=c><h2>Template</h2><select onchange="srt=this.value;R()">${opt('all','All templates',srt)}${D.r.map(r=>opt(r.id,r.name,srt)).join('')}</select></div>`;
+if(!ss.length)return h+'<div class=c>No finished sessions for this template yet.</div>';
+h+=`<div class=c><h2>Sessions</h2>${ss.slice().reverse().slice(0,30).map(s=>{const k=tot(s);return`<div class=hr style="display:block"><div style="display:flex;justify-content:space-between"><b>${esc(s.name)}</b><span>${k.n} sets · ${k.r} reps</span></div><div class=sm>${fd(s.start)} · ${ft(s.start)}–${ft(s.end)}</div></div>`}).join('')}</div>`;
+if(!names.length)return h;
+return h+`<div class=c><h2>Exercise</h2><select onchange="sx=this.value;R()">${names.map(n=>opt(n,n,sx)).join('')}</select></div>
+<div class=c><h2>Top weight per session</h2><canvas id=c1></canvas><h2>Total reps per session</h2><canvas id=c2></canvas></div>
+<div class=c><h2>${esc(sx)}: each session</h2>${rows.slice().reverse().map(p=>`<div class=hr style="display:block"><div style="display:flex;justify-content:space-between"><b>${fd(p.s.start)}</b><span>${p.n} sets · ${p.r} reps · top ${p.w}</span></div><div class=sm>${p.d.map(x=>(x.w||0)+'×'+(x.r||0)).join(' · ')}</div></div>`).join('')||'<p class=sm>No sets logged.</p>'}</div>`}
 function ch(id,v,col){const e=$(id);if(!e)return;const W=e.width=e.clientWidth*2,H=e.height=360,x=e.getContext('2d'),mx=Math.max(...v,1),mn=Math.min(...v,0),p=36,X=i=>p+(v.length>1?i*(W-2*p)/(v.length-1):(W-2*p)/2),Y=y=>H-p-(y-mn)/((mx-mn)||1)*(H-2*p);
 const cs=getComputedStyle(document.documentElement),ink=cs.getPropertyValue('--ink'),cd=cs.getPropertyValue('--card');x.fillStyle=cd;x.fillRect(0,0,W,H);x.strokeStyle=ink;x.fillStyle=ink;x.font='bold 24px sans-serif';x.lineWidth=6;x.beginPath();v.forEach((y,i)=>i?x.lineTo(X(i),Y(y)):x.moveTo(X(i),Y(y)));x.stroke();
 v.forEach((y,i)=>{x.fillStyle=col;x.fillRect(X(i)-10,Y(y)-10,20,20);x.strokeRect(X(i)-10,Y(y)-10,20,20);x.fillStyle=ink;x.fillText(y,X(i)-10,Y(y)-18)})}
