@@ -39,10 +39,11 @@ canvas{width:100%;height:180px;border:3px solid var(--ink);background:var(--card
 .hr{display:flex;justify-content:space-between;gap:8px;border-bottom:2px solid var(--mut);padding:8px 0;font-size:14px;font-weight:700}
 .days label{display:inline-flex;align-items:center;gap:4px;min-height:44px;border:3px solid var(--ink);padding:0 8px;margin:2px;font-size:13px;font-weight:700;background:var(--card)}.days input{width:20px;min-height:0;margin:0;accent-color:var(--ink)}
 .rt{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;background:var(--acc);color:#171717;border:3px solid var(--ink);padding:6px 10px;margin-bottom:14px;box-shadow:var(--sh);font:900 20px system-ui}.rt[hidden]{display:none}
+header{display:flex;justify-content:space-between;align-items:center}#tb{font-size:12px;min-height:38px;margin:0}
 :focus-visible{outline:3px solid var(--red);outline-offset:2px}
 [data-theme=dark]{--bg:#141414;--ink:#F4F0E8;--card:#222;--mut:#2d2d2d;--gry:#383838;--yel:#E8D36A}
 </style></head><body>
-<header>ProjectLift<small>v3</small></header><main id="v"></main>
+<header><span>ProjectLift<small>v4</small></span><button id=tb class=btn onclick="togTheme()">DARK</button></header><main id="v"></main>
 <nav id="n"></nav>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -80,7 +81,7 @@ function home(){const l=ended()[0],ms=miss(),td=ymd(new Date()),gym=new Set(ende
 const m=new Date();m.setDate(1);m.setMonth(m.getMonth()+cm);const Y=m.getFullYear(),M=m.getMonth(),n=new Date(Y,M+1,0).getDate(),o=(m.getDay()+6)%7;
 let cal=['M','T','W','T','F','S','S'].map(x=>`<div class=h>${x}</div>`).join('')+'<div class=e></div>'.repeat(o);
 for(let d=1;d<=n;d++){const k=ymd(new Date(Y,M,d)),t=T[k];cal+=`<div onclick="sel='${k}';R()" class="${gym.has(k)?'g':ms.has(k)?'m':''} ${k==td?'t':''}">${d}<b>${gym.has(k)?'✓':ms.has(k)?'✗':''}${t?ST[t.st]:''}</b></div>`}
-const ds=l?Math.floor((pd(td)-pd(ymd(l.start)))/864e5):null;
+const ss=ended().filter(s=>ymd(s.start)==sel),ds=l?Math.floor((pd(td)-pd(ymd(l.start)))/864e5):null;
 const ts=D.t.find(t=>t.d==sel);
 return`<div class=stats><div class=c><span class=sm>LAST SESSION</span><div>${l?esc(l.name):'—'}</div><span class=sm>${l?ymd(l.start):''}</span></div>
 <div class=c><span class=sm>DAYS SINCE</span><div class=big>${ds??'—'}</div></div></div>
@@ -88,6 +89,9 @@ return`<div class=stats><div class=c><span class=sm>LAST SESSION</span><div>${l?
 <div class=c><div class=row style="align-items:center"><button class=btn onclick="cm--;R()">◀</button><h2 style="text-align:center;margin:0">${m.toLocaleString('en',{month:'long'})} ${Y}</h2><button class=btn onclick="cm++;R()">▶</button></div>
 <div class=cal style="margin-top:8px">${cal}</div>
 <p class=lg style="margin-top:8px"><span>✓ Gym</span><span>✗ Missed</span><span>Grey = rest</span></p></div>
+<div class=c><h2>${sel}</h2>${ss.map(s=>`<div class=hr><span>${esc(s.name)} · ${Math.max(1,Math.round((s.end-s.start)/6e4))} min</span><button class="btn bl" style="min-height:36px;margin:0" onclick="editS('${s.id}')">EDIT</button></div>`).join('')||'<p class=sm>No session logged this day.</p>'}
+${sel<=td?`<div class=row style="margin-top:8px"><select id=ar>${D.r.map(r=>`<option value=${r.id}>${esc(r.name)}</option>`).join('')}<option value="">Custom session</option></select><button class=btn style="flex:none" onclick="addPast()">+ ADD</button></div>`:''}
+<button class="btn bl" onclick="md=sel;tab='meals';R()">MEALS FOR THIS DAY</button></div>
 <div class=c><h2>How was ${sel}?</h2><p class=sm>Tap a calendar day, then log why you missed or what was going on. No guilt.</p>
 <select id=st>${Object.entries(ST).map(([k,v])=>`<option value=${k} ${ts?.st==k?'selected':''}>${v} ${k}</option>`).join('')}</select>
 <input id=sn placeholder="Note (optional)" value="${esc(ts?.note)}"><button class=btn onclick="saveSt()">SAVE</button>${ts?`<button class="btn pk" onclick="delSt()">CLEAR</button>`:''}</div>
@@ -95,7 +99,7 @@ return`<div class=stats><div class=c><span class=sm>LAST SESSION</span><div>${l?
 <div class=c><h2>Backup</h2><p class=sm>${B.lb?'Last backup: '+ymd(B.lb):'No backup yet.'} Your data lives only on this phone, so export now and then.</p><button class=btn onclick="exp()">EXPORT JSON</button><button class="btn bl" onclick="csv()">EXPORT CSV</button><label class="btn pk" style="display:inline-block;padding:9px">IMPORT<input type=file accept=.json hidden onchange="imp(this.files[0])"></label></div>`}
 async function saveSt(){await put('t',{d:sel,st:$('#st').value,note:$('#sn').value});await load();R()}
 async function delSt(){await rm('t',sel);await load();R()}
-let ed=null,rt=0,bp=0;
+let eid=null,ed=null,rt=0,bp=0;
 function train(){const a=act();if(a)return sess(a);const o=ed&&D.r.find(r=>r.id==ed)||{},mo=o.mode||'days';
 const form=`<div class=c><h2>${o.id?'Edit Routine':'New Routine'}</h2><input id=rn placeholder="Name e.g. Push Day" value="${esc(o.name)}">
 <textarea id=re rows=5 placeholder="One exercise per line. Optional sets: Bench Press:4">${esc((o.ex||[]).map(e=>e.n+':'+e.s).join('\n'))}</textarea>
@@ -111,18 +115,26 @@ await put('r',{id:o?o.id:uid(),name,ex,mode:$('#rm').value,days:[...document.que
 async function cloneR(id){const o=D.r.find(r=>r.id==id),n={...o,id:uid(),name:o.name+' (copy)',c:Date.now()};await put('r',n);await load();ed=n.id;R();scrollTo(0,0)}
 async function delR(id){if(confirm('Delete routine? History is kept.')){await rm('r',id);await load();R()}}
 async function startR(id){rt=0;const r=D.r.find(r=>r.id==id),s={id:uid(),rid:id,name:r.name,start:Date.now(),end:null,last:null,ex:r.ex.map(e=>({n:e.n,sets:mk(e.n,e.s)}))};await put('s',s);await load();R()}
-function sess(a){return`<div class=rt id=rt hidden><span id=rtt></span><span><button class=btn onclick="rt+=15e3;updRt()">+15s</button><button class="btn pk" onclick="rt=0;updRt()">SKIP</button></span></div><div class="c hero"><h2>${esc(a.name)}</h2><span class=sm>Started ${new Date(a.start).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} · auto-ends after 1h with no logged set</span><div class=row style="align-items:center;margin-top:6px"><span class=sm>Rest timer</span><select onchange="B.rest=+this.value;put('k',B)">${[45,60,90,120,180,240].map(s=>`<option value=${s} ${(B.rest||90)==s?'selected':''}>${s}s</option>`).join('')}</select></div></div>`+
-a.ex.map((e,i)=>`<div class=c><h2>${esc(e.n)}</h2><div class=row><button class=btn onclick="swap(${i})">⇄ SWAP</button><button class="btn pk" onclick="rmEx(${i})">✕ REMOVE</button></div>
+function sess(a){const E=!!eid;return(E?`<div class="c hero"><h2>Edit: ${esc(a.name)}</h2><div class=row><input type=date value="${ymd(a.start)}" onchange="setD(this.value)"><input type=number inputmode=numeric value="${Math.max(1,Math.round((a.end-a.start)/6e4))}" onchange="setDur(this.value)"></div><span class=sm>Date and duration (min). Tick the sets you actually did.</span></div>`:`<div class=rt id=rt hidden><span id=rtt></span><span><button class=btn onclick="rt+=15e3;updRt()">+15s</button><button class="btn pk" onclick="rt=0;updRt()">SKIP</button></span></div><div class="c hero"><h2>${esc(a.name)}</h2><span class=sm>Started ${new Date(a.start).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} · auto-ends after 1h with no logged set</span><div class=row style="align-items:center;margin-top:6px"><span class=sm>Rest timer</span><select onchange="B.rest=+this.value;put('k',B)">${[45,60,90,120,180,240].map(s=>`<option value=${s} ${(B.rest||90)==s?'selected':''}>${s}s</option>`).join('')}</select></div></div>`)+a.ex.map((e,i)=>`<div class=c><h2>${esc(e.n)}</h2><div class=row><button class=btn onclick="swap(${i})">⇄ SWAP</button><button class="btn pk" onclick="rmEx(${i})">✕ REMOVE</button></div>
 ${e.sets.map((s,j)=>`<div class=set><span>${j+1}</span><input type=number inputmode=decimal placeholder="kg" value="${s.w}" oninput="sv(${i},${j},'w',this.value)"><input type=number inputmode=numeric placeholder="reps" value="${s.r}" oninput="sv(${i},${j},'r',this.value)">
 <select onchange="sv(${i},${j},'b',this.value)">${BARS.map(b=>`<option ${s.b==b?'selected':''}>${b}</option>`).join('')}</select><button class="${s.d?'done':''}" onclick="tg(${i},${j})">✓</button></div>${s.p?`<div class=sm style="margin:-2px 0 4px 26px">last time: ${s.p}</div>`:''}`).join('')}
 <button class=btn onclick="addSet(${i})">+ SET</button></div>`).join('')+
-`<button class="btn bl" onclick="addEx()">+ ADD EXERCISE</button><button class="btn" style="width:100%;font-size:18px;padding:14px" onclick="fin()">✔ COMPLETE SESSION</button><button class="btn pk" onclick="disc()">DISCARD</button>`}
-const sv=(i,j,f,v)=>{const a=act();a.ex[i].sets[j][f]=v;put('s',a)};
-function tg(i,j){const a=act(),s=a.ex[i].sets[j];s.d=!s.d;if(s.d){a.last=Date.now();rt=Date.now()+(B.rest||90)*1e3;bp=0}put('s',a);R()}
-function addSet(i){const a=act(),s=a.ex[i].sets,l=s[s.length-1]||{};s.push({w:l.w??'',r:l.r??'',b:l.b||'Normal',d:false,p:''});put('s',a);R()}
-function swap(i){const n=prompt('Swap for which exercise? (this session only)');if(n){const a=act();a.ex[i]={n:n.trim(),sets:mk(n.trim(),3)};put('s',a);R()}}
-function addEx(){const n=prompt('Exercise name? (this session only)');if(n){const a=act();a.ex.push({n:n.trim(),sets:mk(n.trim(),3)});put('s',a);R()}}
-function rmEx(i){const a=act();a.ex.splice(i,1);put('s',a);R()}
+`<button class="btn bl" onclick="addEx()">+ ADD EXERCISE</button>${E?'<button class=btn style="width:100%" onclick="saveEd()">SAVE CHANGES</button><button class="btn pk" onclick="delEd()">DELETE SESSION</button>':'<button class=btn style="width:100%;font-size:18px" onclick="fin()">✔ COMPLETE SESSION</button><button class="btn pk" onclick="disc()">DISCARD</button>'}`}
+const cur=()=>eid?D.s.find(s=>s.id==eid):act();
+function editS(id){eid=id;R();scrollTo(0,0)}
+function setD(v){if(!v)return;const a=cur(),o=a.end-a.start,h=new Date(a.start),d=pd(v);d.setHours(h.getHours(),h.getMinutes());a.start=d.getTime();a.end=a.start+o;a.last=a.end;put('s',a);sel=v}
+function setDur(v){const a=cur();a.end=a.start+Math.max(1,+v||1)*6e4;a.last=a.end;put('s',a)}
+async function saveEd(){const a=cur();if(!a.ex.some(e=>e.sets.some(s=>s.d))&&!confirm('No sets ticked. Save anyway?'))return;eid=null;await load();R()}
+async function delEd(){if(confirm('Delete this session?')){await rm('s',eid);eid=null;await load();R()}}
+async function addPast(){const rid=$('#ar').value,r=D.r.find(x=>x.id==rid),st=pd(sel).getTime()+432e5,s={id:uid(),rid,name:r?r.name:(prompt('Session name?','Workout')||'Workout'),start:st,end:st+27e5,last:st,ex:r?r.ex.map(e=>({n:e.n,sets:mk(e.n,e.s)})):[]};await put('s',s);await load();eid=s.id;R();scrollTo(0,0)}
+function setTheme(m){document.documentElement.dataset.theme=m;document.querySelector('meta[name=theme-color]').content=m=='dark'?'#141414':'#F4F0E8';const b=$('#tb');if(b)b.textContent=m=='dark'?'LIGHT':'DARK'}
+function togTheme(){const m=document.documentElement.dataset.theme=='dark'?'light':'dark';try{localStorage.setItem('th',m)}catch(e){}setTheme(m);if(tab=='stats')R()}
+const sv=(i,j,f,v)=>{const a=cur();a.ex[i].sets[j][f]=v;put('s',a)};
+function tg(i,j){const a=cur(),s=a.ex[i].sets[j];s.d=!s.d;if(s.d&&!eid){a.last=Date.now();rt=Date.now()+(B.rest||90)*1e3;bp=0}put('s',a);R()}
+function addSet(i){const a=cur(),s=a.ex[i].sets,l=s[s.length-1]||{};s.push({w:l.w??'',r:l.r??'',b:l.b||'Normal',d:false,p:''});put('s',a);R()}
+function swap(i){const n=prompt('Swap for which exercise? (this session only)');if(n){const a=cur();a.ex[i]={n:n.trim(),sets:mk(n.trim(),3)};put('s',a);R()}}
+function addEx(){const n=prompt('Exercise name? (this session only)');if(n){const a=cur();a.ex.push({n:n.trim(),sets:mk(n.trim(),3)});put('s',a);R()}}
+function rmEx(i){const a=cur();a.ex.splice(i,1);put('s',a);R()}
 async function fin(){const a=act();a.end=a.last||Date.now();if(!a.ex.some(e=>e.sets.some(s=>s.d))){if(!confirm('No sets ticked. Discard session?'))return;return disc(1)}await put('s',a);await load();tab='home';R()}
 async function disc(f){if(f||confirm('Discard this session?')){await rm('s',act().id);await load();R()}}
 function stats(){const names=[...new Set(D.s.flatMap(s=>s.ex.map(e=>e.n)))];if(!sx||!names.includes(sx))sx=names[0]||'';
@@ -159,8 +171,8 @@ async function imp(f){if(!f)return;try{const o=JSON.parse(await f.text());if(!o.
 for(const n of['r','s','m','t'])await tx(n,'readwrite',s=>s.clear());
 for(const n of['r','s','m','t'])for(const x of o[n]||[])await put(n,x);if(o.b)await put('k',{...o.b,key:'body'});await load();alert('Backup restored');R()}catch(e){alert('Could not read that file')}}
 const TABS=[['home','🏠','HOME',home],['train','💪','TRAIN',train],['stats','📈','STATS',stats],['body','⚖️','BODY',body],['meals','🍗','MEALS',meals]];
-function R(){$('#v').innerHTML=TABS.find(t=>t[0]==tab)[3]();$('#n').innerHTML=TABS.map(t=>`<button class="${t[0]==tab?'on':''}" onclick="tab='${t[0]}';R();scrollTo(0,0)">${t[2]}</button>`).join('');updRt()}
-const dk=matchMedia('(prefers-color-scheme:dark)').matches;document.documentElement.dataset.theme=dk?'dark':'light';document.querySelector('meta[name=theme-color]').content=dk?'#141414':'#F4F0E8';
+function R(){$('#v').innerHTML=eid?sess(cur()):TABS.find(t=>t[0]==tab)[3]();$('#n').innerHTML=TABS.map(t=>`<button class="${t[0]==tab?'on':''}" onclick="tab='${t[0]}';eid=null;R();scrollTo(0,0)">${t[2]}</button>`).join('');updRt()}
+let th;try{th=localStorage.getItem('th')}catch(e){}setTheme(th||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'));
 (async()=>{db=await op();await load();chk();R();setInterval(updRt,500);setInterval(async()=>{if(chk()){await load();R()}},6e4);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&chk()){load().then(R)}});
 if('serviceWorker'in navigator){const had=navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had)location.reload()});
